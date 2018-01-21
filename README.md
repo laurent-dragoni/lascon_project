@@ -2,8 +2,8 @@
 
 **Gabriel L. Debastiani¹**, **Laurent Dragoni²**, **Vitor V. Cuziol³**
 
-¹ Departamento de Física, Universidade Federal do Rio Grande do Sul, Porto Alegre, Rio Grande do Sul, Brazil
-² Laboratoire J.A. Dieudonné, Université Nice Côte d'Azur, Nice, Provence-Alpes-Côte d'Azur, France
+¹ Departamento de Física, Universidade Federal do Rio Grande do Sul, Porto Alegre, Rio Grande do Sul, Brazil  
+² Laboratoire J.A. Dieudonné, Université Nice Côte d'Azur, Nice, Provence-Alpes-Côte d'Azur, France  
 ³ Departamento de Computação e Matemática, Faculdade de Filosofia, Ciências e Letras de Ribeirão Preto/Universidade de São Paulo, Ribeirão Preto, São Paulo, Brazil
 
 ## Abstract
