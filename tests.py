@@ -5,6 +5,7 @@
 import numpy as np
 import hexagonal_network as hn
 import matplotlib.pyplot as pl
+import pickle
 
 #%%
 print(hn.in_hexagon(0.5, 0.2))
@@ -129,3 +130,27 @@ for i in range(numberOfBasket):
 pl.plot(Xpyr, Ypyr, 'b.')
 pl.plot(Xbasket, Ybasket, 'gx')
 hn.plot_all_hexagons(R, Nedge=1000)
+
+#%%
+# Write listOfPyrCenters in the file pyramidCellsPositions
+with open('pyramidCellsPositions', 'wb') as pyramidFile:
+    my_pickler = pickle.Pickler(pyramidFile)
+    my_pickler.dump(listOfPyrCenters)
+
+#%%
+# Read positions of pyramidal cells from the file pyramidCellsPositions
+with open('pyramidCellsPositions', 'rb') as pyramidFile:
+    my_unpickler = pickle.Unpickler(pyramidFile)
+    storedPyramidPositions = my_unpickler.load()
+    
+#%%
+# Write listOfBasketCenters in the file basketCellsPositions
+with open('basketCellsPositions', 'wb') as basketFile:
+    my_pickler = pickle.Pickler(basketFile)
+    my_pickler.dump(listOfBasketCenters)
+
+#%%
+# Read positions of basket cells from the file basketCellsPositions
+with open('basketCellsPositions', 'rb') as basketFile:
+    my_unpickler = pickle.Unpickler(basketFile)
+    storedBasketPositions = my_unpickler.load()

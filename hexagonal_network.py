@@ -257,8 +257,9 @@ def basket_centers(numberOfBasketPerHC, listOfPyrCenters, Cx=0.0, Cy=0.0, R=1.0)
     
     for i in range(numberOfBasketPerHC):
         x, y = rand_in_hexagon(Cx, Cy, R)
-        while (x,y) in listOfPyrCenters: 
-            # redraw if a Pyramidal Cell is already at this location
+        while (x,y) in listOfPyrCenters or (x,y) in listOfBasketCenters: 
+            # redraw if a Pyramidal Cell or a Basket Cell is already at 
+            # this location
             x, y = rand_in_hexagon(Cx, Cy, R)
         listOfBasketCenters += [(x,y)]
     
