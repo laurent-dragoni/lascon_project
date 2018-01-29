@@ -17,15 +17,14 @@ def in_hexagon(x, y, Cx=0.0, Cy=0.0, R=1.0):
     return (np.abs(x - Cx) < V3*R/2) & (np.abs(y - x/V3 - Cy + Cx/V3) < R) & (np.abs(y + x/V3 - Cy - Cx/V3) < R)
 
 
-def plot_hexagon(Cx=0.0, Cy=0.0, R=1.0, Nedge=1000):
+def plot_hexagon(Cx=0.0, Cy=0.0, R=1.0, Nedge=1000, plotStyle='r-'):
     
     """
     Plots the hexagon centered at (Cx,Cy) and of radius R.
     Nedge is the number of points to plot for each edge of the hexagon.
+    plotStyle : string describing the plotting style of the hexagon edges,
+    default is red lines.
     """
-    
-    # plot style
-    style = 'r.'
     
     # vertical edges
     T1 = np.zeros((Nedge,2))
@@ -61,18 +60,20 @@ def plot_hexagon(Cx=0.0, Cy=0.0, R=1.0, Nedge=1000):
         D2[i,0] = Cx + i*R*V3/(2*(Nedge-1))
         D2[i,1] = -D2[i,0]/V3 + Cy + R + Cx/V3        
     
-    pl.plot(T1[:,0], T1[:,1], style)
-    pl.plot(T2[:,0], T2[:,1], style)
-    pl.plot(delta1[:,0], delta1[:,1], style)
-    pl.plot(delta2[:,0], delta2[:,1], style)
-    pl.plot(D1[:,0], D1[:,1], style)
-    pl.plot(D2[:,0], D2[:,1], style)
+    pl.plot(T1[:,0], T1[:,1], plotStyle)
+    pl.plot(T2[:,0], T2[:,1], plotStyle)
+    pl.plot(delta1[:,0], delta1[:,1], plotStyle)
+    pl.plot(delta2[:,0], delta2[:,1], plotStyle)
+    pl.plot(D1[:,0], D1[:,1], plotStyle)
+    pl.plot(D2[:,0], D2[:,1], plotStyle)
     
-def plot_all_hexagons(R=1.0, Nedge=1000):
+def plot_all_hexagons(R=1.0, Nedge=1000, plotStyle='r-'):
     
     """
     Plots all the 16 hexagons from the article.
     Nedge is the number of points to plot for each edge of the hexagon.
+    plotStyle : string describing the plotting style of the hexagon edges,
+    default is red lines.
     """
     
     listOfAllHCCenters = all_hc_centers(R)
@@ -81,7 +82,7 @@ def plot_all_hexagons(R=1.0, Nedge=1000):
     for i in range(length):
         Cxi = listOfAllHCCenters[i][0]
         Cyi = listOfAllHCCenters[i][1]
-        plot_hexagon(Cxi, Cyi, R, Nedge)   
+        plot_hexagon(Cxi, Cyi, R, Nedge, plotStyle)   
     
     
 def rand_in_circle(Cx=0.0, Cy=0.0, R=1.0):
@@ -181,7 +182,7 @@ def all_hc_centers(R=1.0):
     return listOfAllHCCenters
     
     
-def mc_centers(numberOfMCPerHC=12, r=0.1, Cx=0.0, Cy=0.0, R=1.0):
+def mc_centers_in_hc(numberOfMCPerHC=12, r=0.1, Cx=0.0, Cy=0.0, R=1.0):
     
     """
     Each Minicolumn is seen as a disc of radius r.
@@ -224,12 +225,12 @@ def all_mc_centers(numberOfMCPerHC=12, r=0.1, R=1.0):
         # center of the current hexagon
         Cx, Cy = listOfAllHCCenters[i]
         # generates MC centers in this hexagon
-        listOfAllMCCenters += mc_centers(numberOfMCPerHC, r, Cx, Cy, R)
+        listOfAllMCCenters += mc_centers_in_hc(numberOfMCPerHC, r, Cx, Cy, R)
     
     return listOfAllMCCenters        
         
 
-def pyr_centers(numberOfPyrPerMC=30, r=0.1, Cx=0.0, Cy=0.0):
+def pyr_centers_in_mc(numberOfPyrPerMC=30, r=0.1, Cx=0.0, Cy=0.0):
     """
     Generates numberOfPyrPerMC Pyramidal Cells centers inside the MiniColumn
     centered at (Cx,Cy) and of radius r.
@@ -246,7 +247,7 @@ def pyr_centers(numberOfPyrPerMC=30, r=0.1, Cx=0.0, Cy=0.0):
     
     return listOfPyrCenters
 
-def basket_centers(numberOfBasketPerHC, listOfPyrCenters, Cx=0.0, Cy=0.0, R=1.0):
+def basket_centers_in_hc(numberOfBasketPerHC, listOfPyrCenters, Cx=0.0, Cy=0.0, R=1.0):
     """
     Generates numberOfBasketPerHC Basket Cells centers inside the HyperColumn
     centered at (Cx,Cy) and of radius R. We also do not want Basket Cells at
@@ -266,29 +267,29 @@ def basket_centers(numberOfBasketPerHC, listOfPyrCenters, Cx=0.0, Cy=0.0, R=1.0)
     return listOfBasketCenters
 
 
-def all_neuron_centers(numberOfNeuronsPerMC=30, numberOfMCPerHC=12, r=0.1, R=1.0):
-    """
-    Generates all the neurons centers of the model.
-    
-    numberOfNeuronsPerMC : number of neurons per MiniColumn.
-    numberOfMCPerHC : number of MiniColumn per HyperColumn.    
-    r : radius of each MiniColumn (circle)
-    R : radius of each HyperColumn (hexagon)
-    """
-    
-    listOfAllNeuronCenters = []
-    listOfAllMCCenters = all_mc_centers(numberOfMCPerHC, r, R)
-    length = len(listOfAllMCCenters)
-    
-    for i in range(length): # for each MiniColumn MCi, generates its neurons
-        Cxi = listOfAllMCCenters[i][0]
-        Cyi = listOfAllMCCenters[i][1]
-        listOfAllNeuronCenters += pyr_centers(numberOfNeuronsPerMC, r, Cxi, Cyi)
-    
-    return listOfAllNeuronCenters
+#def all_neuron_centers(numberOfNeuronsPerMC=30, numberOfMCPerHC=12, r=0.1, R=1.0):
+#    """
+#    Generates all the neurons centers of the model.
+#    
+#    numberOfNeuronsPerMC : number of neurons per MiniColumn.
+#    numberOfMCPerHC : number of MiniColumn per HyperColumn.    
+#    r : radius of each MiniColumn (circle)
+#    R : radius of each HyperColumn (hexagon)
+#    """
+#    
+#    listOfAllNeuronCenters = []
+#    listOfAllMCCenters = all_mc_centers(numberOfMCPerHC, r, R)
+#    length = len(listOfAllMCCenters)
+#    
+#    for i in range(length): # for each MiniColumn MCi, generates its neurons
+#        Cxi = listOfAllMCCenters[i][0]
+#        Cyi = listOfAllMCCenters[i][1]
+#        listOfAllNeuronCenters += pyr_centers_in_mc(numberOfNeuronsPerMC, r, Cxi, Cyi)
+#    
+#    return listOfAllNeuronCenters
 
 
-def all_pyr_and_basket_cells_in_HC(numberOfMCPerHC=12, numberOfPyrPerMC=30, numberOfBasketPerHC=24, r=0.1, R=1.0):
+def all_pyr_and_basket_cells(numberOfMCPerHC=12, numberOfPyrPerMC=30, numberOfBasketPerHC=24, r=0.1, R=1.0):
     """
     Generates all the Pyramidal Cells centers and all the Basket Cells centers.
     
@@ -311,16 +312,16 @@ def all_pyr_and_basket_cells_in_HC(numberOfMCPerHC=12, numberOfPyrPerMC=30, numb
         listOfPyrCentersInHCi = []        
         CxHC = listOfAllHCCenters[i][0]
         CyHC = listOfAllHCCenters[i][1]        
-        listOfMCCenters = mc_centers(numberOfMCPerHC, r, CxHC, CyHC, R)
+        listOfMCCenters = mc_centers_in_hc(numberOfMCPerHC, r, CxHC, CyHC, R)
         
         # generates Pyramidal Cells in every MC of HC number i
         for j in range(numberOfMCPerHC):
             
             CxMC = listOfMCCenters[j][0]
             CyMC = listOfMCCenters[j][1]
-            listOfPyrCentersInHCi = pyr_centers(numberOfPyrPerMC, r, CxMC, CyMC)
+            listOfPyrCentersInHCi = pyr_centers_in_mc(numberOfPyrPerMC, r, CxMC, CyMC)
             listOfPyrCenters += listOfPyrCentersInHCi
         
-        listOfBasketCenters += basket_centers(numberOfBasketPerHC, listOfPyrCentersInHCi, CxHC, CyHC, R)
+        listOfBasketCenters += basket_centers_in_hc(numberOfBasketPerHC, listOfPyrCentersInHCi, CxHC, CyHC, R)
 
     return listOfPyrCenters, listOfBasketCenters

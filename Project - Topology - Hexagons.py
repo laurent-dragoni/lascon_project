@@ -19,6 +19,12 @@ nest.ResetKernel()
 
 #ext = 2. # here we use a square layer of size (ext x ext)
 ext_hc = 640. # 640 micrometers of diameter in each HC
+
+# WARNING : the quantity called 'diameter' in the article is not the actual 
+# diameter (eg the distance between two opposing vertices) of the hexagons.
+# The relationship between article_diameter and true_diameter is :
+# article_diameter = sqrt(3)*true_diameter/2
+# Hence the following formula for the radius of HyperColumns :
 radiusOfHC = ext_hc/np.sqrt(3)
 
 radiusOfMC = 10
@@ -36,7 +42,7 @@ n_hc = 16                              #number of hypercolumns
 
 # pos1 : positions of the Pyramidal Cells
 # pos2 : positions of the Basket Cells
-pos1, pos2 = hn.all_pyr_and_basket_cells_in_HC(numberOfMCPerHC, n_pyr, n_bc, radiusOfMC, radiusOfHC)
+pos1, pos2 = hn.all_pyr_and_basket_cells(numberOfMCPerHC, n_pyr, n_bc, radiusOfMC, radiusOfHC)
 
 # In[27]:
 
