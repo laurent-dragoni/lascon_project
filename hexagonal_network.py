@@ -184,14 +184,14 @@ def all_hc_centers(R=1.0):
 def mc_centers(numberOfMCPerHC=12, r=0.1, Cx=0.0, Cy=0.0, R=1.0):
     
     """
-    Each microcolumn is seen as a disc of radius r.
-    Returns a list of numberOfMCPerHC centers of the microcolumns belonging to the
+    Each Minicolumn is seen as a disc of radius r.
+    Returns a list of numberOfMCPerHC centers of the Minicolumns belonging to the
     hexagon centered at (Cx,Cy) and of radius R.
     We also ensure that the MCs do not overlap.
     """
     
     # generating a new center in a slightly smaller hexagon, so that the 
-    # circle (microcolumn) associated is entirely in the hexagon
+    # circle (Minicolumn) associated is entirely in the hexagon
     newx, newy = rand_in_hexagon(Cx, Cy, R - 2*r/np.sqrt(3))
     listOfMCCenters = [(newx, newy)]
     
@@ -210,8 +210,8 @@ def mc_centers(numberOfMCPerHC=12, r=0.1, Cx=0.0, Cy=0.0, R=1.0):
 def all_mc_centers(numberOfMCPerHC=12, r=0.1, R=1.0):
     """
     Generates all the MC centers of the model.
-    numberOfMCPerHC : number of MicroColumn per HyperColumn
-    r : radius of each MicroColumn
+    numberOfMCPerHC : number of MiniColumn per HyperColumn
+    r : radius of each MiniColumn
     R : radius of each HyperColumn (hexagon)
     """
     
@@ -231,7 +231,7 @@ def all_mc_centers(numberOfMCPerHC=12, r=0.1, R=1.0):
 
 def pyr_centers(numberOfPyrPerMC=30, r=0.1, Cx=0.0, Cy=0.0):
     """
-    Generates numberOfPyrPerMC Pyramidal Cells centers inside the MicroColumn
+    Generates numberOfPyrPerMC Pyramidal Cells centers inside the MiniColumn
     centered at (Cx,Cy) and of radius r.
     """
     
@@ -270,9 +270,9 @@ def all_neuron_centers(numberOfNeuronsPerMC=30, numberOfMCPerHC=12, r=0.1, R=1.0
     """
     Generates all the neurons centers of the model.
     
-    numberOfNeuronsPerMC : number of neurons per MicroColumn.
-    numberOfMCPerHC : number of MicroColumn per HyperColumn.    
-    r : radius of each MicroColumn (circle)
+    numberOfNeuronsPerMC : number of neurons per MiniColumn.
+    numberOfMCPerHC : number of MiniColumn per HyperColumn.    
+    r : radius of each MiniColumn (circle)
     R : radius of each HyperColumn (hexagon)
     """
     
@@ -280,7 +280,7 @@ def all_neuron_centers(numberOfNeuronsPerMC=30, numberOfMCPerHC=12, r=0.1, R=1.0
     listOfAllMCCenters = all_mc_centers(numberOfMCPerHC, r, R)
     length = len(listOfAllMCCenters)
     
-    for i in range(length): # for each MicroColumn MCi, generates its neurons
+    for i in range(length): # for each MiniColumn MCi, generates its neurons
         Cxi = listOfAllMCCenters[i][0]
         Cyi = listOfAllMCCenters[i][1]
         listOfAllNeuronCenters += pyr_centers(numberOfNeuronsPerMC, r, Cxi, Cyi)
@@ -292,10 +292,10 @@ def all_pyr_and_basket_cells_in_HC(numberOfMCPerHC=12, numberOfPyrPerMC=30, numb
     """
     Generates all the Pyramidal Cells centers and all the Basket Cells centers.
     
-    numberOfMCPerHC : number of MicroColumn per HyperColumn.
-    numberOfPyrPerMC : number of Pyramidal Cells per MicroColumn.
+    numberOfMCPerHC : number of MiniColumn per HyperColumn.
+    numberOfPyrPerMC : number of Pyramidal Cells per MiniColumn.
     numberOfBasketPerHC : number of Basket Cells per HyperColumn.
-    r : radius of each MicroColumn (circle).
+    r : radius of each MiniColumn (circle).
     R : radius of the HyperColumn (hexagon).
     """
     
@@ -304,7 +304,7 @@ def all_pyr_and_basket_cells_in_HC(numberOfMCPerHC=12, numberOfPyrPerMC=30, numb
     listOfPyrCenters = []
     listOfBasketCenters = []
     
-    # for each HyperColumn, generate its MicroColumns, Pyramidal Cells and
+    # for each HyperColumn, generate its MiniColumns, Pyramidal Cells and
     # Basket Cells
     for i in range(16):
         
