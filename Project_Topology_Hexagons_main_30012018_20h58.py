@@ -191,62 +191,67 @@ conn_pp = 0.2  #probability of connecting between pyramidal cell and pyramidal c
 
 #nest.SetDefaults("tsodyks2_synapse", {'tau_rec':5.})          #####       tau_rec = 5ms corresponds to the AMPA and GAMA receptors
 
-
 conn_pb = {
     'connection_type': 'divergent',
-    'mask': {'rectangular': {'lower_left': [-999999999., -999999999.], 'upper_right': [999999999., 999999999.]},
-             'anchor': [totalLength/2.0, totalWidth/2.0]},
+    'mask': {'rectangular': {'lower_left': [-totalLength, -totalWidth], 'upper_right': [totalLength, totalWidth]},
+             'anchor': [0., 0.]},
     'kernel': conn_pb,
     'allow_autapses': False,
-#    'delays': {'distribution': 'uniform', 'low': 0.8, 'high': 2.5},
+##    'delays': {'distribution': 'uniform', 'low': 0.8, 'high': 2.5},
     'delays': {"linear" :{"c":d_linear_c,"a":d_linear_a}},
-#    'synapse_model': 'excitatory'
+##    'synapse_model': 'excitatory'
     'synapse_model': 'static_synapse'
-#    'synapse_model': 'tsodyks2_synapse'
 }
 
 conn_bp = {
     'connection_type': 'divergent',
-    'mask': {'rectangular': {'lower_left': [-999999999., -999999999.], 'upper_right': [999999999., 999999999.]},
-             'anchor': [totalLength/2.0, totalWidth/2.0]},
+    'mask': {'rectangular': {'lower_left': [-totalLength, -totalWidth], 'upper_right': [totalLength, totalWidth]},
+             'anchor': [0., 0.]},
     'kernel': conn_bp,
     'allow_autapses': False,
-#    'delays': {'distribution': 'uniform', 'low': 0.8, 'high': 2.5},
+##    'delays': {'distribution': 'uniform', 'low': 0.8, 'high': 2.5},
     'delays': {"linear" :{"c":d_linear_c,"a":d_linear_a}},
-#    'synapse_model': 'inhibitory'
+##    'synapse_model': 'inhibitory'
     'synapse_model': 'static_synapse'
-#    'synapse_model': 'tsodyks2_synapse'
 }
 
 conn_pp = {
     'connection_type': 'divergent',
-    'mask': {'rectangular': {'lower_left': [-999999999., -999999999.], 'upper_right': [999999999., 999999999.]},
-             'anchor': [totalLength/2.0, totalWidth/2.0]},
+    'mask': {'rectangular': {'lower_left': [-totalLength, -totalWidth], 'upper_right': [totalLength, totalWidth]},
+             'anchor': [0., 0.]},
     'kernel': conn_pp,
     'allow_autapses': False,
-#    'delays': {'distribution': 'uniform', 'low': 0.8, 'high': 2.5},
+##    'delays': {'distribution': 'uniform', 'low': 0.8, 'high': 2.5},
     'delays': {"linear" :{"c":d_linear_c,"a":d_linear_a}},
-#    'synapse_model': 'excitatory'
+##    'synapse_model': 'excitatory'
     'synapse_model': 'static_synapse'
-#    'synapse_model': 'tsodyks2_synapse'
 }
+
+
+# In[36]:
 
 
 #connect each HC with 12 MC and vice-versa
 
 for i in range(n_hc):
-    for j in range (n_hc):
-        if (i==j):
-            topo.ConnectLayers(hc[i], mc[j], conn_bp)
-            topo.ConnectLayers(mc[i], hc[j], conn_pb)
+    topo.ConnectLayers(hc[i], mc[i], conn_bp)
+    topo.ConnectLayers(mc[i], hc[i], conn_pb)
 
+
+# In[37]:
 
 
 #connect each MC with all MC:            
 
 for i in range(n_hc):
-    for j in range (i):
+    for j in range (n_hc):
         topo.ConnectLayers(mc[i], mc[j], conn_pp)
+
+
+#%%
+allCons = nest.GetConnections()
+
+#%%
 
 ##############################################################################################################################################################
 
