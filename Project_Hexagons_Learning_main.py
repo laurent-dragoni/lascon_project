@@ -15,6 +15,70 @@ import nest.raster_plot
 import numpy as np
 import pylab
 import hexagonal_network as hn
+import pickle
+
+#========================================================================================== FUNCTIONS
+def simulate_and_plot():
+    N = (n_top * n_pyr) + (n_hc * n_bc)  # total number of neurons
+    print "Total number of neurons:", N
+
+    # for each HC, puts its neurons in a list
+    # two loops because I want to keep the pyramidal and basket cells separated.
+    allnodes = []
+    for i in range(n_hc):
+        # "nest.GetNodes(mc[0])[0]" accesses the 360 neurons (i.e., 30 neurons for each of the 12 MCs) of a HC
+        allnodes.append(nest.GetNodes(mc[i])[0])
+    ##    print "appended: ", nest.GetNodes(mc[i])[0]
+    for i in range(n_hc):
+        # "nest.GetNodes(hc[0])[0]" accesses the 24 basket cells of each HC
+        allnodes.append(nest.GetNodes(hc[i])[0])
+    ##    print "appended: ", nest.GetNodes(hc[i])[0]
+
+    # just turns the array of arrays into a single array
+    allnodes = np.array([item for sublist in allnodes for item in sublist])
+    assert(len(allnodes) == N)
+
+    ##allnodes = np.array(range(2,N))
+
+    #============================
+
+    # set up and connect spike detector
+    sd = nest.Create('spike_detector')
+    nest.Connect(list(allnodes), sd)
+
+    # set random initial membrane potentials
+    for id in allnodes:  # loop over all target neurons
+        nest.SetStatus([id], {'V_m': Vreset + (Vth - Vreset) * np.random.rand()})
+
+    # run simulation
+    nest.Simulate(T)
+
+    # read out recorded spikes
+    spike_senders = nest.GetStatus(sd)[0]['events']['senders']
+    spike_times = nest.GetStatus(sd)[0]['events']['times']
+
+    # compute average firing rate
+    rate = pylab.float32(nest.GetStatus(sd)[0]['n_events']) / T * 1e3 / N
+    print("\nFiring rate = %.1f spikes/s" % (rate))
+
+    #============================
+    # plotting
+    # uncomment to show plots
+    ##pylab.figure(1)
+    ##pylab.clf()
+    ##pylab.plot(spike_times, spike_senders, 'k.', markersize=1)
+    ##
+    ##pylab.xlim(0, T)
+    ###pylab.ylim(allnodes[0], allnodes[-1])
+    ##pylab.xlabel('time (ms)')
+    ##pylab.ylabel('neuron id')
+    ##pylab.show()
+
+    ## see last spike of a given neuron
+    #nest.GetStatus((x,))[0]['t_spike']
+
+    nest.raster_plot.from_device(sd)
+    pylab.show()
 
 #==========================================================================================
 # In[22]:
@@ -23,7 +87,7 @@ import hexagonal_network as hn
 nest.ResetKernel()
 
 # simulation parameters
-T = 3000.  # simulation time (ms)
+T = 1000.  # simulation time (ms)
 dt = 0.1  # simulation resolution (ms)
 
 nest.SetStatus([0], {
@@ -175,12 +239,6 @@ for i in range (n_hc):
 
 # In[34]:
 
-
-
-
-
-
-
 ################################################################################################################################################
 
 
@@ -200,7 +258,7 @@ conn_pb = {
 ##    'delays': {'distribution': 'uniform', 'low': 0.8, 'high': 2.5},
     'delays': {"linear" :{"c":d_linear_c,"a":d_linear_a}},
 ##    'synapse_model': 'excitatory'
-    'synapse_model': 'static_synapse'
+    'synapse_model': 'stdp_synapse'
 }
 
 conn_bp = {
@@ -216,6 +274,19 @@ conn_bp = {
 }
 
 conn_pp = {
+    'connection_type': 'divergent',
+    'mask': {'rectangular': {'lower_left': [-totalLength, -totalWidth], 'upper_right': [totalLength, totalWidth]},
+             'anchor': [0., 0.]},
+    'kernel': conn_pp,
+    'allow_autapses': False,
+##    'delays': {'distribution': 'uniform', 'low': 0.8, 'high': 2.5},
+    'delays': {"linear" :{"c":d_linear_c,"a":d_linear_a}},
+##    'synapse_model': 'excitatory'
+    'synapse_model': 'stdp_synapse'
+}
+
+# connection for the poisson generator layer (noiselayer). devices can only be connected with the static synapse model
+conn_poisson = {
     'connection_type': 'divergent',
     'mask': {'rectangular': {'lower_left': [-totalLength, -totalWidth], 'upper_right': [totalLength, totalWidth]},
              'anchor': [0., 0.]},
@@ -289,9 +360,6 @@ for i in range(n_hc):
 
 ##############################################################################################################################################################
 
-
-
-
 # plots the layers. generates a lot of images.
 ###%%
 ##for i in range(n_hc):
@@ -309,19 +377,21 @@ for i in range(n_hc):
 
 
 # make a copy of the poisson_generator model and specify the rate
-nest.CopyModel('poisson_generator', 'my_poisson_generator', {'rate': 200000.} )
-ext=2.
-noise_layer_dict = {
-    'extent': [ext_hc, ext_hc],
-    'positions': [[0.0, 0.0]],
-    'elements': 'my_poisson_generator'
-}
-
-noiselayer = (topo.CreateLayer(noise_layer_dict))
-
-for j in range(n_hc):  #connect layer to poisson generator
-    topo.ConnectLayers(noiselayer, mc[j], conn_pp)
-
+# (I disabled the noise layer so it would not affect the other poisson geneator I am using for the learning;
+# but I'm not sure this is necessary.)
+##nest.CopyModel('poisson_generator', 'my_poisson_generator', {'rate': 200000.} )
+##ext=2.
+##noise_layer_dict = {
+##    'extent': [ext_hc, ext_hc],
+##    'positions': [[0.0, 0.0]],
+##    'elements': 'my_poisson_generator'
+##}
+##
+##noiselayer = (topo.CreateLayer(noise_layer_dict))
+##
+##for j in range(n_hc):  #connect layer to poisson generator
+##    topo.ConnectLayers(noiselayer, mc[j], conn_poisson)
+##
 
 # In[40]:
 
@@ -341,260 +411,87 @@ for j in range(n_hc):  #connect layer to poisson generator
 ##pylab.grid(True)
 ##print(ctr)
 
+#================================================================================= learning
 
-# In[496]:
+numberOfPatterns = numberOfMCPerHC
 
+# prepare the 12 sets of microcolumns; each set for a single pattern
+pattern_neurons = [[] for i in range(numberOfPatterns)] # list of lists. e.g., pattern_neurons[0] has the neurons that encode pattern 0.
 
-################################################################
-######         TRYING TO FIX THE NEXT STEPS        #############
-################################################################
+hc_range = np.arange(0,390,30)
 
-### In[377]:
-##
-##
-##ext = 2. # here we use a square layer of size (ext x ext)
-##n_pyr=30  #pyramidal neurons in each minicolumn
-##n_bc=24 #basket cells in each hypercolumn
-##
-###position of each pyramidal neuron
-##pos1 = [[np.random.uniform(-ext/2,ext/2), np.random.uniform(-ext/2,ext/2)] for j in range(n_pyr)]
-##
-###position of each basket cell
-##pos2 = [[np.random.uniform(-ext/2,ext/2), np.random.uniform(-ext/2,ext/2)] for j in range(n_bc)]
-##
-##layer_pyr = {
-##    'extent': [ext, ext],
-##    'positions': pos1,
-##    #'elements': 'iaf_neuron'
-##    'elements': 'aeif_cond_alpha'  #adaptative exponential integrate and firing as neuron model
-##}
-##
-##layer_bc = {
-##    'extent': [ext, ext],
-##    'positions': pos2,
-##    #'elements': 'iaf_neuron'
-##    'elements': 'aeif_cond_alpha'  #adaptative exponential integrate and firing as neuron model
-##}
-##
-##
-### In[378]:
-##
-##
-##n_top=192                            #number of minicolumns (12 in each of the 16 hipercolumns)
-##n_hc=16                              #number of hypercolumns
-##
-##mc=[0]*n_top
-##for i in range (n_top):            #create the minicolumns with pyramidal cells    #using range (0,n_top-1) is iqual to range(n_top-1)
-##    mc[i]=topo.CreateLayer(layer_pyr)
-##    
-##hc=[0]*n_hc                          #number of hipercolumns
-##for i in range (n_hc):             #create the hypercolumns with basket cells
-##    hc[i]=topo.CreateLayer(layer_bc)
-##
-##
-### In[379]:
-##
-##
-##conn_pb = 0.7  #probability of connecting between pyramidal cell and basket cell 
-##conn_bp = 0.7  #probability of connecting between basket cell and pyramidal cell
-##conn_pp = 0.2  #probability of connecting between pyramidal cell and pyramidal cell 
-##
-##conn_pb = {
-##    'connection_type': 'divergent',
-##    'mask': {'rectangular': {'lower_left': [-1., -1.], 'upper_right': [1.,1.]},
-##             'anchor': [0.0, 0.0]},
-##    'kernel': conn_pb,
-##    'allow_autapses': False
-##}
-##
-##conn_bp = {
-##    'connection_type': 'divergent',
-##    'mask': {'rectangular': {'lower_left': [-1., -1.], 'upper_right': [1.,1.]},
-##             'anchor': [0.0, 0.0]},
-##    'kernel': conn_bp,
-##    'allow_autapses': False
-##}
-##
-##conn_pp = {
-##    'connection_type': 'divergent',
-##    'mask': {'rectangular': {'lower_left': [-1., -1.], 'upper_right': [1.,1.]},
-##             'anchor': [0.0, 0.0]},
-##    'kernel': conn_pp,
-##    'allow_autapses': False
-##}
-##
-##
-##
-### rectangular mask, constant kernel, non-centered anchor
-###conn2 = {
-###    'connection_type': 'divergent',
-###    'mask': {'rectangular': {'lower_left': [-1., -1.], 'upper_right': [1.,1.]},
-###             'anchor': [0.0, 0.0]
-###             },
-###    'kernel': 0.75,
-###    'allow_autapses': False
-###}
-##
-### rectangular mask, constant kernel, non-centered anchor
-###conn2 = {
-###    'connection_type': 'divergent',
-###    'mask': {'rectangular': {'lower_left': [-1., -1.], 'upper_right': [1.,1.]},
-###             'anchor': [0.0, 0.0]},
-###    'kernel': {'uniform': {'min':0.,'max':1.}},
-###    'allow_autapses': False
-###}
-##
-##
-###
-###
-###
-###EVERYTHING RIGHT UNTIL HERE!
-###
-###
-###
-##
-##
-### In[380]:
-##
-##
-###connect each HC with 12 MC
-##
-##for i in range(n_hc-1):
-##    for j in range (n_top-1):
-##        if (i+j)%(n_hc)==0:
-##            topo.ConnectLayers(hc[i], mc[j], conn_bp)
-##            
-###connect each MC with all MC:            
-##
-##for i in range(n_top-1):
-##    for j in range (i):
-##        if i!=j:
-##            topo.ConnectLayers(mc[i], mc[j], conn_pp)
-##            
-##
-####I couldn't test this part yet, but I think it's ok.
-##
-##
-### In[19]:
-##
-##
-### make a copy of the poisson_generator model and specify the rate
-##nest.CopyModel('poisson_generator', 'my_poisson_generator', {'rate': 200000.} )
-##ext=2.
-##noise_layer_dict = {
-##    'extent': [ext_hc, ext_hc],
-##    'positions': [[0.0, 0.0]],
-##    'elements': 'my_poisson_generator'
-##}
-##
-##noiselayer = (topo.CreateLayer(noise_layer_dict))
-##
-##for j in range(n_hc):  #connect layer to poisson generator
-##    topo.ConnectLayers(noiselayer, mc[j], conn_pp)
-##
-##
-### In[382]:
-##
-##
-##noiselayer = (topo.CreateLayer(noise_layer_dict))
-##
-##
-### In[383]:
-##
-##
-##type (noise_layer_dict)
-##
-##
-### In[384]:
-##
-##
-##print noiselayer
-##
-##
-### In[473]:
-##
-##
-##for j in range(0,n_top-1):  #connect layer to poisson generator
-##    topo.ConnectLayers(noiselayer, mc[j], conn_pp)
-##
-##
-### In[491]:
-##
-##
-##layer = mc[0]
-##conn_dict = conn_pp
-##
-##fig = topo.PlotLayer(layer)
-##ctr = topo.FindCenterElement(noiselayer) # extract GID of poisson generator
-##topo.PlotTargets(ctr, layer, fig=fig, mask=conn_dict['mask'], mask_color='green',
-##                 src_size=250, src_color='red',
-##                 tgt_size=20, tgt_color='red')
-##   
-### beautify
-##pylab.axes().set_xticks(pylab.arange(-ext_hc*4., ext_hc*4., 0.640))
-##pylab.axes().set_yticks(pylab.arange(-ext_hc*4., ext_hc*4., 0.640))
-##pylab.grid(True)
-##print(ctr)
+# for each hypercolumn...
+for hc_i in range(n_hc):
+    # ...gets the 360 neurons (i.e., 30 neurons for each of the 12 MCs) of the HC.
+    hc_neurons = nest.GetNodes(mc[hc_i])[0]
+
+    i = 0
+    # for each of the 12 patterns...
+    while i < numberOfPatterns:
+        # ... gets the neurons of the microcolumn corresponding to the pattern.
+        pattern_neurons[i].append(hc_neurons[hc_range[i]:hc_range[i+1]])
+        i = i + 1
+
+# just in case the nodes are being appended in tuples; I want "pattern_neurons" to be a list of lists of nodes. no tuples.
+for i,List in enumerate(pattern_neurons):
+    pattern_neurons[i] = [item for sublist in List for item in sublist]
+
+#=======================================
+
+# data vector to be inputted
+data = '#LASCON2018!'
+
+# data must have 12 'patterns', one pattern for each set of microcolumns
+assert(len(data) == numberOfPatterns)
+
+# converts the characters to ASCII
+inputdata = [ord(ch) for ch in data]
+
+pgen_list = []
+parrot_list = []
+
+# for each pattern (and for each set of microcolumns):
+for i, num in enumerate(inputdata):
+    # create poisson generator and parameters
+    pgen = nest.Create("poisson_generator")
+    
+    # repeat many times: 300ms of stimulation; 150ms of rest
+##    pgen_start_times = [x for x in np.arange(0.0,T-450.0,450.0)]
+##    pgen_stop_times = [x for x in np.arange(300.0,T,450.0)]
+
+    # set rate to the given number
+    # (I tried to set many times when the poisson generator starts and stops, but this didn't work.)
+##    nest.SetStatus(pgen, {"start": pgen_start_times, "stop": pgen_stop_times, "rate": num*1000.0})
+    nest.SetStatus(pgen, {"start": 0.0, "stop": 750.0, "rate": num*1000.0})
+
+    # create parrot neuron to repeat the pgen's output to everyone
+    # and connect pgen to it
+    parrot = nest.Create("parrot_neuron")
+    nest.Connect(pgen, parrot)
+
+    # connect parrot neuron to the respective set of microcolumns
+    nest.Connect(parrot, pattern_neurons[i])
+
+    pgen_list.append(pgen)
+    parrot_list.append(parrot)
+
+assert(len(pgen_list) == len(parrot_list) == numberOfPatterns)
 
 #==========================================================================================
 
-N = (n_top * n_pyr) + (n_hc * n_bc)  # total number of neurons
-print "Total number of neurons:", N
-
-# for each HC, puts its neurons in a list
-# two loops because I want to keep the pyramidal and basket cells separated.
-allnodes = []
-for i in range(n_hc):
-    # "nest.GetNodes(mc[0])[0]" accesses the 360 neurons (i.e., 30 neurons for each of the 12 MCs) of a HC
-    allnodes.append(nest.GetNodes(mc[i])[0])
-##    print "appended: ", nest.GetNodes(mc[i])[0]
-for i in range(n_hc):
-    # "nest.GetNodes(hc[0])[0]" accesses the 24 basket cells of each HC
-    allnodes.append(nest.GetNodes(hc[i])[0])
-##    print "appended: ", nest.GetNodes(hc[i])[0]
-
-# just turns the array of arrays into a single array
-allnodes = np.array([item for sublist in allnodes for item in sublist])
-assert(len(allnodes) == N)
-
-##allnodes = np.array(range(2,N))
+simulate_and_plot()
 
 #==========================================================================================
 
-# set up and connect spike detector
-sd = nest.Create('spike_detector')
-nest.Connect(list(allnodes), sd)
+# save the connections using pickle
+conns = nest.GetConnections(list(allnodes))
+x = nest.GetStatus(conns)
 
-# set random initial membrane potentials
-for id in allnodes:  # loop over all target neurons
-    nest.SetStatus([id], {'V_m': Vreset + (Vth - Vreset) * np.random.rand()})
+for el in x:
+    el['synapse_model'] = str(el['synapse_model'])
 
-# run simulation
-nest.Simulate(T)
+pickle.dump(x, open("conns.dat","w+"))
 
-# read out recorded spikes
-spike_senders = nest.GetStatus(sd)[0]['events']['senders']
-spike_times = nest.GetStatus(sd)[0]['events']['times']
 
-# compute average firing rate
-rate = pylab.float32(nest.GetStatus(sd)[0]['n_events']) / T * 1e3 / N
-print("\nFiring rate = %.1f spikes/s" % (rate))
+# TODO: set parameters for stdp synapse
 
-#=================================================================================
-# plotting
-# uncomment to show plots
-##pylab.figure(1)
-##pylab.clf()
-##pylab.plot(spike_times, spike_senders, 'k.', markersize=1)
-##
-##pylab.xlim(0, T)
-###pylab.ylim(allnodes[0], allnodes[-1])
-##pylab.xlabel('time (ms)')
-##pylab.ylabel('neuron id')
-##pylab.show()
-
-## see last spike of a given neuron
-#nest.GetStatus((x,))[0]['t_spike']
-
-nest.raster_plot.from_device(sd)
-pylab.show()
