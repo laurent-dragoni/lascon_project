@@ -249,7 +249,41 @@ for i in range(n_hc):
 
 
 #%%
-allCons = nest.GetConnections()
+# Delays as in the article
+
+V = 200 # micrometers/ms conduction velocity
+
+# setting delays for pyramidal cells as source of the connections
+for i in range(n_hc):
+    listOfPyrId = nest.GetNodes(mc[i])[0] # list of pyramidal cells ID in mc[i]
+    for j in listOfPyrId:
+        conns = nest.GetConnections(source=[j])
+        targets = nest.GetStatus(conns, 'target')
+        sources = nest.GetStatus(conns, 'source')
+        targets_pos = topo.GetPosition(targets)
+        sources_pos = topo.GetPosition(sources)
+        dists = np.sum((np.array(targets_pos) - np.array(sources_pos))**2, axis=1)
+        mean_delays = dists/V + 1.
+        std_delays = 0.15 * mean_delays
+        delays = np.random.normal(loc=mean_delays, scale=std_delays)
+        nest.SetStatus(conns, [{'delay': delays[k]} for k in range(len(conns))])
+        
+# setting delays for basket cells as source of the connections
+for i in range(n_hc):
+    listOfBasketId = nest.GetNodes(hc[i])[0] # list of basket cells ID in hc[i]
+    for j in listOfBasketId:
+        conns = nest.GetConnections(source=[j])
+        targets = nest.GetStatus(conns, 'target')
+        sources = nest.GetStatus(conns, 'source')
+        targets_pos = topo.GetPosition(targets)
+        sources_pos = topo.GetPosition(sources)
+        dists = np.sum((np.array(targets_pos) - np.array(sources_pos))**2, axis=1)
+        mean_delays = dists/V + 1.
+        std_delays = 0.15 * mean_delays
+        delays = np.random.normal(loc=mean_delays, scale=std_delays)
+        nest.SetStatus(conns, [{'delay': delays[k]} for k in range(len(conns))])
+        
+
 
 #%%
 
