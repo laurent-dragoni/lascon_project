@@ -60,7 +60,10 @@ pl.plot(X, Y, 'bo')
 hn.plot_hexagon(Cx, Cy, R, Nedge=1000)
 
 #%%
-listOfAllHCCenters = hn.all_hc_centers()
+listOfHCCenters = hn.new_all_hc_centers(nx=2, ny=2, R=1.)
+
+#%%
+hn.new_plot_all_hexagons(listOfHCCenters, R=1.0, Nedge=1000, plotStyle='r-')
 
 #%%
 numberOfMCPerHC = 30
@@ -83,15 +86,19 @@ pl.plot(X, Y, 'b.')
 hn.plot_all_hexagons(R, Nedge=1000)
 
 #%%
+nx = 2
+ny = 3
+numberOfHC = nx*ny
 numberOfMCPerHC=12
 numberOfPyrPerMC=30
 numberOfBasketPerHC=24
 r=0.1
 R=1.0
-listOfPyrCenters, listOfBasketCenters = hn.all_pyr_and_basket_cells(numberOfMCPerHC, numberOfPyrPerMC, numberOfBasketPerHC, r, R)
+listOfHCCenters = hn.new_all_hc_centers(nx, ny, R)
+listOfPyrCenters, listOfBasketCenters = hn.new_all_pyr_and_basket_cells(nx, ny, numberOfMCPerHC, numberOfPyrPerMC, numberOfBasketPerHC, r, R)
 
-numberOfPyr = numberOfPyrPerMC*numberOfMCPerHC*16
-numberOfBasket = numberOfBasketPerHC*16
+numberOfPyr = numberOfPyrPerMC*numberOfMCPerHC*numberOfHC
+numberOfBasket = numberOfBasketPerHC*numberOfHC
 
 Xpyr = np.zeros(numberOfPyr)
 Ypyr = np.zeros(numberOfPyr)
@@ -109,7 +116,7 @@ for i in range(numberOfBasket):
     
 pl.plot(Xpyr, Ypyr, 'b.')
 pl.plot(Xbasket, Ybasket, 'gx')
-hn.plot_all_hexagons(R, Nedge=1000)
+hn.new_plot_all_hexagons(listOfHCCenters, R, Nedge=1000)
 
 #%%
 # Write listOfPyrCenters in the file pyramidCellsPositions

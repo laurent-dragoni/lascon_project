@@ -82,7 +82,23 @@ def plot_all_hexagons(R=1.0, Nedge=1000, plotStyle='r-'):
     for i in range(length):
         Cxi = listOfAllHCCenters[i][0]
         Cyi = listOfAllHCCenters[i][1]
-        plot_hexagon(Cxi, Cyi, R, Nedge, plotStyle)   
+        plot_hexagon(Cxi, Cyi, R, Nedge, plotStyle)
+
+def new_plot_all_hexagons(listOfHCCenters, R=1.0, Nedge=1000, plotStyle='r-'):
+    
+    """
+    Plots all the hexagons of radius R from the list listOfHCCenters.
+    Nedge is the number of points to plot for each edge of the hexagon.
+    plotStyle : string describing the plotting style of the hexagon edges,
+    default is red lines.
+    """
+    
+    length = len(listOfHCCenters)
+    
+    for i in range(length):
+        Cxi = listOfHCCenters[i][0]
+        Cyi = listOfHCCenters[i][1]
+        plot_hexagon(Cxi, Cyi, R, Nedge, plotStyle)
     
     
 def rand_in_circle(Cx=0.0, Cy=0.0, R=1.0):
@@ -178,6 +194,35 @@ def all_hc_centers(R=1.0):
     listOfAllHCCenters += [(-L/2 + 4*d, H/2 - 11*R/2)]
     listOfAllHCCenters += [(-L/2 + 6*d, H/2 - 11*R/2)]
     listOfAllHCCenters += [(-L/2 + 8*d, H/2 - 11*R/2)]
+    
+    return listOfAllHCCenters
+
+def new_all_hc_centers(nx, ny, R=1.0):
+    
+    """
+    Returns the list of centers of hexagons (HyperColumns).
+    The whole grid is supposed to be centered at (0,0).
+    
+    nx = number of hexagons on the x axis.
+    ny = number of hexagons on the y axis.
+    R = radius of the hexagons.
+    """
+    
+    listOfAllHCCenters = []
+    Diam = R*np.sqrt(3)
+    L = (nx + 0.5)*Diam
+    H = (3*ny + 1)*R/2.    
+    d = Diam/2.
+    
+    for j in range(ny):
+        currenty = H/2. - R -j*3.*R/2
+        for i in range(nx):
+            if j%2 == 0:
+                currentx = -L/2. + d + i*Diam
+                listOfAllHCCenters += [(currentx,currenty)]
+            else:
+                currentx = -L/2. + Diam + i*Diam
+                listOfAllHCCenters += [(currentx,currenty)]
     
     return listOfAllHCCenters
     
@@ -308,6 +353,47 @@ def all_pyr_and_basket_cells(numberOfMCPerHC=12, numberOfPyrPerMC=30, numberOfBa
     # for each HyperColumn, generate its MiniColumns, Pyramidal Cells and
     # Basket Cells
     for i in range(16):
+        
+        listOfPyrCentersInHCi = []        
+        CxHC = listOfAllHCCenters[i][0]
+        CyHC = listOfAllHCCenters[i][1]        
+        listOfMCCenters = mc_centers_in_hc(numberOfMCPerHC, r, CxHC, CyHC, R)
+        
+        # generates Pyramidal Cells in every MC of HC number i
+        for j in range(numberOfMCPerHC):
+            
+            CxMC = listOfMCCenters[j][0]
+            CyMC = listOfMCCenters[j][1]
+            listOfPyrCentersInHCi = pyr_centers_in_mc(numberOfPyrPerMC, r, CxMC, CyMC)
+            listOfPyrCenters += listOfPyrCentersInHCi
+        
+        listOfBasketCenters += basket_centers_in_hc(numberOfBasketPerHC, listOfPyrCentersInHCi, CxHC, CyHC, R)
+
+    return listOfPyrCenters, listOfBasketCenters
+
+def new_all_pyr_and_basket_cells(nx = 4, ny = 4, numberOfMCPerHC=12, numberOfPyrPerMC=30, numberOfBasketPerHC=24, r=0.1, R=1.0):
+    """
+    Generates all the Pyramidal Cells centers and all the Basket Cells centers.
+    
+    nx : number of HyperColumn on the x axis.
+    ny : number of HyperColumn on the y axis.
+    
+    numberOfMCPerHC : number of MiniColumn per HyperColumn.
+    numberOfPyrPerMC : number of Pyramidal Cells per MiniColumn.
+    numberOfBasketPerHC : number of Basket Cells per HyperColumn.
+    r : radius of each MiniColumn (circle).
+    R : radius of the HyperColumn (hexagon).
+    """
+    
+    numberOfHC = nx*ny
+    listOfAllHCCenters = new_all_hc_centers(nx, ny, R)    
+    
+    listOfPyrCenters = []
+    listOfBasketCenters = []
+    
+    # for each HyperColumn, generate its MiniColumns, Pyramidal Cells and
+    # Basket Cells
+    for i in range(numberOfHC):
         
         listOfPyrCentersInHCi = []        
         CxHC = listOfAllHCCenters[i][0]
