@@ -87,7 +87,7 @@ def simulate_and_plot():
 nest.ResetKernel()
 
 # simulation parameters
-T = 1000.  # simulation time (ms)
+T = 100.  # simulation time (ms)
 dt = 0.1  # simulation resolution (ms)
 
 nest.SetStatus([0], {
@@ -167,6 +167,9 @@ nest.SetDefaults(neuron_model_name, neuron_params)
 
 '''extension of the grid'''
 
+nx = 2 # number of HC on x axis
+ny = 2 # number of HC on y axis
+
 #ext = 2. # here we use a square layer of size (ext x ext)
 ext_hc = 640. # 640 micrometers of diameter in each HC
 
@@ -176,23 +179,23 @@ ext_hc = 640. # 640 micrometers of diameter in each HC
 # article_diameter = sqrt(3)*true_diameter/2
 # Hence the following formula for the radius of HyperColumns :
 radiusOfHC = ext_hc/np.sqrt(3)
-
-radiusOfMC = 10
+radiusOfMC = 10    
+    
 ext_mc_l = radiusOfMC
 ext_mc_w = radiusOfMC
 
-totalLength = 9.*ext_hc/2 # total length of the network
-totalWidth = 13.*ext_hc/(2*np.sqrt(3)) # total width of the network
+totalLength = (nx + 0.5)*ext_hc # total length of the network
+totalWidth = (3*ny + 1)*ext_hc/(2*np.sqrt(3)) # total width of the network
 
-numberOfMCPerHC = 12
-n_pyr = 30                             #pyramidal neurons in each minicolumn
-n_bc = 24                              #basket cells in each hypercolumn
-n_top = 192                            #number of minicolumns (12 in each of the 16 hypercolumns)
-n_hc = 16                              #number of hypercolumns
+n_hc = nx*ny #number of hypercolumns
+numberOfMCPerHC = 12 # number of minicolumn per hypercolumn
+n_pyr = 30 # number of pyramidal neurons in each minicolumn
+n_bc = 24 # number of basket cells in each hypercolumn
+n_top = numberOfMCPerHC*n_hc # total number of minicolumns
 
 # pos1 : positions of the Pyramidal Cells
 # pos2 : positions of the Basket Cells
-pos1, pos2 = hn.all_pyr_and_basket_cells(numberOfMCPerHC, n_pyr, n_bc, radiusOfMC, radiusOfHC)
+pos1, pos2 = hn.new_all_pyr_and_basket_cells(nx, ny, numberOfMCPerHC, n_pyr, n_bc, radiusOfMC, radiusOfHC)
 
 # In[27]:
 
@@ -242,9 +245,9 @@ for i in range (n_hc):
 ################################################################################################################################################
 
 
-conn_pb = 0.7  #probability of connecting between pyramidal cell and basket cell 
-conn_bp = 0.7  #probability of connecting between basket cell and pyramidal cell
-conn_pp = 0.2  #probability of connecting between pyramidal cell and pyramidal cell 
+Ppb = 0.7  #probability of connecting between pyramidal cell and basket cell 
+Pbp = 0.7  #probability of connecting between basket cell and pyramidal cell
+Ppp = 0.2  #probability of connecting between pyramidal cell and pyramidal cell 
 
 
 #nest.SetDefaults("tsodyks2_synapse", {'tau_rec':5.})          #####       tau_rec = 5ms corresponds to the AMPA and GAMA receptors
@@ -253,7 +256,7 @@ conn_pb = {
     'connection_type': 'divergent',
     'mask': {'rectangular': {'lower_left': [-totalLength, -totalWidth], 'upper_right': [totalLength, totalWidth]},
              'anchor': [0., 0.]},
-    'kernel': conn_pb,
+    'kernel': Ppb,
     'allow_autapses': False,
 ##    'delays': {'distribution': 'uniform', 'low': 0.8, 'high': 2.5},
     'delays': {"linear" :{"c":d_linear_c,"a":d_linear_a}},
@@ -265,7 +268,7 @@ conn_bp = {
     'connection_type': 'divergent',
     'mask': {'rectangular': {'lower_left': [-totalLength, -totalWidth], 'upper_right': [totalLength, totalWidth]},
              'anchor': [0., 0.]},
-    'kernel': conn_bp,
+    'kernel': Pbp,
     'allow_autapses': False,
 ##    'delays': {'distribution': 'uniform', 'low': 0.8, 'high': 2.5},
     'delays': {"linear" :{"c":d_linear_c,"a":d_linear_a}},
@@ -277,7 +280,7 @@ conn_pp = {
     'connection_type': 'divergent',
     'mask': {'rectangular': {'lower_left': [-totalLength, -totalWidth], 'upper_right': [totalLength, totalWidth]},
              'anchor': [0., 0.]},
-    'kernel': conn_pp,
+    'kernel': Ppp,
     'allow_autapses': False,
 ##    'delays': {'distribution': 'uniform', 'low': 0.8, 'high': 2.5},
     'delays': {"linear" :{"c":d_linear_c,"a":d_linear_a}},
@@ -290,7 +293,7 @@ conn_poisson = {
     'connection_type': 'divergent',
     'mask': {'rectangular': {'lower_left': [-totalLength, -totalWidth], 'upper_right': [totalLength, totalWidth]},
              'anchor': [0., 0.]},
-    'kernel': conn_pp,
+    'kernel': Ppp,
     'allow_autapses': False,
 ##    'delays': {'distribution': 'uniform', 'low': 0.8, 'high': 2.5},
     'delays': {"linear" :{"c":d_linear_c,"a":d_linear_a}},
@@ -321,39 +324,39 @@ for i in range(n_hc):
 
 #%%
 # Delays as in the article
-
-V = 200 # micrometers/ms conduction velocity
-
-# setting delays for pyramidal cells as source of the connections
-for i in range(n_hc):
-    listOfPyrId = nest.GetNodes(mc[i])[0] # list of pyramidal cells ID in mc[i]
-    for j in listOfPyrId:
-        conns = nest.GetConnections(source=[j])
-        targets = nest.GetStatus(conns, 'target')
-        sources = nest.GetStatus(conns, 'source')
-        targets_pos = topo.GetPosition(targets)
-        sources_pos = topo.GetPosition(sources)
-        dists = np.sum((np.array(targets_pos) - np.array(sources_pos))**2, axis=1)
-        mean_delays = dists/V + 1.
-        std_delays = 0.15 * mean_delays
-        delays = np.random.normal(loc=mean_delays, scale=std_delays)
-        nest.SetStatus(conns, [{'delay': delays[k]} for k in range(len(conns))])
-        
-# setting delays for basket cells as source of the connections
-for i in range(n_hc):
-    listOfBasketId = nest.GetNodes(hc[i])[0] # list of basket cells ID in hc[i]
-    for j in listOfBasketId:
-        conns = nest.GetConnections(source=[j])
-        targets = nest.GetStatus(conns, 'target')
-        sources = nest.GetStatus(conns, 'source')
-        targets_pos = topo.GetPosition(targets)
-        sources_pos = topo.GetPosition(sources)
-        dists = np.sum((np.array(targets_pos) - np.array(sources_pos))**2, axis=1)
-        mean_delays = dists/V + 1.
-        std_delays = 0.15 * mean_delays
-        delays = np.random.normal(loc=mean_delays, scale=std_delays)
-        nest.SetStatus(conns, [{'delay': delays[k]} for k in range(len(conns))])
-        
+#
+#V = 200 # micrometers/ms conduction velocity
+#
+## setting delays for pyramidal cells as source of the connections
+#for i in range(n_hc):
+#    listOfPyrId = nest.GetNodes(mc[i])[0] # list of pyramidal cells ID in mc[i]
+#    for j in listOfPyrId:
+#        conns = nest.GetConnections(source=[j])
+#        targets = nest.GetStatus(conns, 'target')
+#        sources = nest.GetStatus(conns, 'source')
+#        targets_pos = topo.GetPosition(targets)
+#        sources_pos = topo.GetPosition(sources)
+#        dists = np.sum((np.array(targets_pos) - np.array(sources_pos))**2, axis=1)
+#        mean_delays = dists/V + 1.
+#        std_delays = 0.15 * mean_delays
+#        delays = [max(dd,0.) for dd in np.random.normal(loc=mean_delays, scale=std_delays)]
+#        nest.SetStatus(conns, [{'delay': delays[k]} for k in range(len(conns))])
+#        
+## setting delays for basket cells as source of the connections
+#for i in range(n_hc):
+#    listOfBasketId = nest.GetNodes(hc[i])[0] # list of basket cells ID in hc[i]
+#    for j in listOfBasketId:
+#        conns = nest.GetConnections(source=[j])
+#        targets = nest.GetStatus(conns, 'target')
+#        sources = nest.GetStatus(conns, 'source')
+#        targets_pos = topo.GetPosition(targets)
+#        sources_pos = topo.GetPosition(sources)
+#        dists = np.sum((np.array(targets_pos) - np.array(sources_pos))**2, axis=1)
+#        mean_delays = dists/V + 1.
+#        std_delays = 0.15 * mean_delays
+#        delays = [max(dd,0.) for dd in np.random.normal(loc=mean_delays, scale=std_delays)]
+#        nest.SetStatus(conns, [{'delay': delays[k]} for k in range(len(conns))])
+#        
 
 #%%
 
@@ -417,7 +420,7 @@ numberOfPatterns = numberOfMCPerHC
 # prepare the 12 sets of microcolumns; each set for a single pattern
 pattern_neurons = [[] for i in range(numberOfPatterns)] # list of lists. e.g., pattern_neurons[0] has the neurons that encode pattern 0.
 
-hc_range = np.arange(0,390,30)
+hc_range = np.arange(0,(numberOfMCPerHC+1)*n_pyr,n_pyr)
 
 # for each hypercolumn...
 for hc_i in range(n_hc):
@@ -477,11 +480,12 @@ for i, num in enumerate(inputdata):
 assert(len(pgen_list) == len(parrot_list) == numberOfPatterns)
 
 #==========================================================================================
+#%%
 
 simulate_and_plot()
 
 #==========================================================================================
-
+#%%
 # save the connections using pickle
 conns = nest.GetConnections(list(allnodes))
 x = nest.GetStatus(conns)
